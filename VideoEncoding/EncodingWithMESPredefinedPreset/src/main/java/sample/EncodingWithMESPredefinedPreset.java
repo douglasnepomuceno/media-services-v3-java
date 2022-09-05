@@ -35,12 +35,14 @@ public class EncodingWithMESPredefinedPreset {
     private static final String MP4_FILE_NAME = "Ignite-short.mp4";
     private static final String INPUT_LABEL = "input1";
 
-    // Please change this to your endpoint name
+    // Por favor, altere isso para o nome do seu endpoint
     private static final String STREAMING_ENDPOINT_NAME = "default";
 
     public static void main(String[] args) {
-        // Please make sure you have set configuration in resources/conf/appsettings.json. For more information, see
+
+        // Certifique-se de ter definido a configuração em resources/conf/appsettings.json. Para mais informações, veja
         // https://docs.microsoft.com/azure/media-services/latest/access-api-cli-how-to.
+
         ConfigWrapper config = new ConfigWrapper();
         runEncodingWithMESPredefinedPreset(config);
 
@@ -51,11 +53,13 @@ public class EncodingWithMESPredefinedPreset {
     /**
      * Run the sample.
      *
-     * @param config This param is of type ConfigWrapper. This class reads values from local configuration file.
+     * @param config Este parâmetro é do tipo ConfigWrapper. Esta classe lê valores do arquivo de configuração local.
      */
     private static void runEncodingWithMESPredefinedPreset(ConfigWrapper config) {
-        // Connect to media services, please see https://docs.microsoft.com/en-us/azure/media-services/latest/configure-connect-java-howto
-        // for details.
+
+        // Conecte-se a serviços de mídia, consulte https://docs.microsoft.com/en-us/azure/media-services/latest/configure-connect-java-howto
+        // para detalhes.
+
         TokenCredential credential = new ClientSecretCredentialBuilder()
                 .clientId(config.getAadClientId())
                 .clientSecret(config.getAadSecret())
@@ -64,13 +68,17 @@ public class EncodingWithMESPredefinedPreset {
         AzureProfile profile = new AzureProfile(config.getAadTenantId(), config.getSubscriptionId(),
                 com.azure.core.management.AzureEnvironment.AZURE);
 
-        // MediaServiceManager is the entry point to Azure Media resource management.
+
+        // MediaServiceManager é o ponto de entrada para o gerenciamento de recursos do Azure Media.
+
         MediaServicesManager manager = MediaServicesManager.configure()
                 .withLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .authenticate(credential, profile);
 
-        // Creating a unique suffix so that we don't have name collisions if you run the
-        // sample
+
+        // Criando um sufixo exclusivo para que não tenhamos colisões de nomes se você executar o
+        // amostra
+
         UUID uuid = UUID.randomUUID();
         String uniqueness = uuid.toString();
         String jobName = "job-" + uniqueness.substring(0, 13);
@@ -84,7 +92,9 @@ public class EncodingWithMESPredefinedPreset {
             outputs.add(new TransformOutput().withPreset(
                     new BuiltInStandardEncoderPreset().withPresetName(EncoderNamedPreset.CONTENT_AWARE_ENCODING)));
 
-            // Create the transform.
+
+        // Cria a transformação.
+
             System.out.println("Creating a transform...");
             Transform transform = manager.transforms()
                     .define(TRANSFORM_NAME)
@@ -93,15 +103,19 @@ public class EncodingWithMESPredefinedPreset {
                     .create();
             System.out.println("Transform created");
 
-            // Create a JobInputHttp. The input to the Job is a HTTPS URL pointing to an MP4 file.
+
+        // Cria um JobInputHttp. A entrada para o trabalho é um URL HTTPS apontando para um arquivo MP4.
+
             List<String> files = new ArrayList<>();
             files.add(MP4_FILE_NAME);
             JobInputHttp input = new JobInputHttp().withBaseUri(BASE_URI);
             input.withFiles(files);
             input.withLabel(INPUT_LABEL);
 
-            // Output from the encoding Job must be written to an Asset, so let's create one. Note that we
-            // are using a unique asset name, there should not be a name collision.
+
+            // A saída do Job de codificação deve ser gravada em um Asset, então vamos criar um. Observe que nós
+            // estão usando um nome de ativo exclusivo, não deve haver uma colisão de nomes.
+
             System.out.println("Creating an output asset...");
             Asset outputAsset = manager.assets()
                     .define(outputAssetName)
@@ -113,10 +127,11 @@ public class EncodingWithMESPredefinedPreset {
 
             long startedTime = System.currentTimeMillis();
 
-            // In this demo code, we will poll for Job status. Polling is not a recommended best practice for production
-            // applications because of the latency it introduces. Overuse of this API may trigger throttling. Developers
-            // should instead use Event Grid. To see how to implement the event grid, see the sample
+            // Neste código de demonstração, pesquisaremos o status do trabalho. A pesquisa não é uma prática recomendada para produção
+            // aplicativos devido à latência que ele introduz. O uso excessivo dessa API pode acionar a limitação. Desenvolvedores
+            // deve usar Event Grid. Para ver como implementar a grade de eventos, veja o exemplo
             // https://github.com/Azure-Samples/media-services-v3-java/tree/master/ContentProtection/BasicAESClearKey.
+
             job = waitForJobToFinish(manager, config.getResourceGroup(), config.getAccountName(), transform.name(),
                     jobName);
 
@@ -127,8 +142,9 @@ public class EncodingWithMESPredefinedPreset {
                 System.out.println("Job finished.");
                 System.out.println();
 
-                // Now that the content has been encoded, publish it for Streaming by creating
-                // a StreamingLocator. 
+                // Agora que o conteúdo foi codificado, publique-o para Streaming criando
+                // um StreamingLocator.
+
                 StreamingLocator locator = getStreamingLocator(manager, config.getResourceGroup(), config.getAccountName(),
                         outputAsset.name(), locatorName);
 
@@ -136,12 +152,16 @@ public class EncodingWithMESPredefinedPreset {
                         .get(config.getResourceGroup(), config.getAccountName(), STREAMING_ENDPOINT_NAME);
 
                 if (streamingEndpoint != null) {
-                    // Start The Streaming Endpoint if it is not running.
+
+                // Inicia o Streaming Endpoint se não estiver em execução.
+
                     if (streamingEndpoint.resourceState() != StreamingEndpointResourceState.RUNNING) {
                         System.out.println("Streaming endpoint was stopped, restarting it...");
                         manager.streamingEndpoints().start(config.getResourceGroup(), config.getAccountName(), STREAMING_ENDPOINT_NAME);
 
-                        // We started the endpoint, we should stop it in cleanup.
+
+                // Iniciamos o endpoint, devemos pará-lo na limpeza.
+
                         stopEndpoint = true;
                     }
 
@@ -160,7 +180,9 @@ public class EncodingWithMESPredefinedPreset {
                     System.out.flush();
                     scanner.nextLine();
 
-                    // Download output asset for verification.
+
+                // Baixe o ativo de saída para verificação.
+
                     System.out.println("Downloading output asset...");
                     System.out.println();
                     File outputFolder = new File(OUTPUT_FOLDER);
@@ -230,7 +252,7 @@ public class EncodingWithMESPredefinedPreset {
     private static Job submitJob(MediaServicesManager manager, String resourceGroup, String accountName, String transformName,
                                  String jobName, JobInput jobInput, String outputAssetName) {
         System.out.println("Creating a job...");
-        // First specify where the output(s) of the Job need to be written to
+        // Primeiro especifique onde a(s) saída(s) do Job precisam ser gravadas
         List<JobOutput> jobOutputs = new ArrayList<>();
         jobOutputs.add(new JobOutputAsset().withAssetName(outputAssetName));
 
@@ -340,8 +362,9 @@ public class EncodingWithMESPredefinedPreset {
      */
     private static StreamingLocator getStreamingLocator(MediaServicesManager manager, String resourceGroup, String accountName,
                                                         String assetName, String locatorName) {
-        // Note that we are using one of the PredefinedStreamingPolicies which tell the Origin component
-        // of Azure Media Services how to publish the content for streaming.
+
+        // Observe que estamos usando um dos PredefinedStreamingPolicies que informam o componente Origin
+        // dos Serviços de Mídia do Azure como publicar o conteúdo para streaming.
         System.out.println("Creating a streaming locator...");
         StreamingLocator locator = manager
                 .streamingLocators().define(locatorName)
@@ -406,11 +429,13 @@ public class EncodingWithMESPredefinedPreset {
         manager.streamingLocators().delete(resourceGroupName, accountName, streamingLocatorName);
 
         if (stopEndpoint) {
-            // Because we started the endpoint, we'll stop it.
+
+        // Como iniciamos o endpoint, vamos interrompê-lo.
             manager.streamingEndpoints().stop(resourceGroupName, accountName, streamingEndpointName);
         } else {
-            // We will keep the endpoint running because it was not started by this sample. Please note, There are costs to keep it running.
-            // Please refer https://azure.microsoft.com/en-us/pricing/details/media-services/ for pricing.
+
+        // Manteremos o endpoint em execução porque ele não foi iniciado por este exemplo. Observe que há custos para mantê-lo funcionando.
+        // Consulte https://azure.microsoft.com/en-us/pricing/details/media-services/ para obter preços.
             System.out.println("The endpoint '" + streamingEndpointName + "' is running. To halt further billing on the endpoint, please stop it in azure portal or AMS Explorer.");
         }
     }
